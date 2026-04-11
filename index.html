@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImpactFlow - Smart Resource Allocation</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="theme-light">
+
+    <!-- SPLASH SCREEN: Role Selection -->
+    <div id="splash-screen" class="splash-container">
+        <div class="splash-content">
+            <div class="logo-large">
+                <i data-lucide="activity"></i>
+                <h1>ImpactFlow</h1>
+            </div>
+            <p class="subtitle" id="splash-desc" data-i18n="splash_desc">Select your role to access the disaster relief
+                network.</p>
+
+            <div class="role-cards">
+                <div class="role-card" data-role="ngo">
+                    <div class="icon-wrap electric-blue"><i data-lucide="shield-check"></i></div>
+                    <h3 data-i18n="role_ngo_title">NGO Organization</h3>
+                    <p data-i18n="role_ngo_desc">Manage resources and dispatch relief.</p>
+                </div>
+                <div class="role-card" data-role="victim">
+                    <div class="icon-wrap emergency-red"><i data-lucide="alert-triangle"></i></div>
+                    <h3 data-i18n="role_victim_title">Person in Need</h3>
+                    <p data-i18n="role_victim_desc">Broadcast SOS requests to the network.</p>
+                </div>
+                <div class="role-card" data-role="volunteer">
+                    <div class="icon-wrap accent-green"><i data-lucide="users"></i></div>
+                    <h3 data-i18n="role_vol_title">Volunteer</h3>
+                    <p data-i18n="role_vol_desc">Verify hotspots and offer on-ground help.</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="main-app" class="hidden">
+
+        <!-- Top Navigation -->
+        <header class="navbar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>ImpactFlow</span>
+            </div>
+            <div class="nav-controls">
+                <span id="sync-status" class="status-indicator online tooltip-container">
+                    <i data-lucide="wifi"></i>
+                </span>
+                <div class="custom-lang-picker" id="language-select-container">
+                    <button id="btn-lang-picker" class="glass-input lang-btn">
+                        <i data-lucide="globe"></i>
+                        <span id="current-lang-text">English</span>
+                        <i data-lucide="chevron-down"></i>
+                    </button>
+                    <div id="lang-dropdown" class="lang-dropdown glass hidden">
+                        <div class="lang-option active" data-val="en">English</div>
+                        <div class="lang-option" data-val="hi">हिन्दी</div>
+                        <div class="lang-option" data-val="gu">ગુજરાતી</div>
+                        <div class="lang-option" data-val="mr">मराठी</div>
+                        <div class="lang-option" data-val="es">Español</div>
+                    </div>
+                </div>
+                <button id="switch-role-btn" class="icon-button tooltip-container desktop-only">
+                    <i data-lucide="log-out"></i>
+                    <span class="tooltip" data-i18n="nav_switch_role">Switch Role</span>
+                </button>
+                <button id="btn-mobile-menu" class="icon-button mobile-only">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MOBILE SIDE DRAWER -->
+        <div id="mobile-drawer-overlay" class="drawer-overlay hidden"></div>
+        <div id="mobile-drawer" class="mobile-drawer glass-deep hidden">
+            <div class="drawer-header">
+                <div class="logo">
+                    <i data-lucide="activity"></i>
+                    <span>ImpactFlow</span>
+                </div>
+                <button id="btn-close-drawer" class="icon-button">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="drawer-body">
+                <div class="drawer-item" id="drawer-lang-trigger">
+                    <i data-lucide="globe"></i>
+                    <span data-i18n="nav_language">Language</span>
+                    <span class="current-val" id="drawer-lang-text">English</span>
+                </div>
+                <div class="drawer-item" id="drawer-switch-role">
+                    <i data-lucide="log-out"></i>
+                    <span data-i18n="nav_switch_role">Switch Role</span>
+                </div>
+                <!-- Profile/Logout placeholder -->
+                <div class="drawer-item" id="drawer-logout">
+                    <i data-lucide="user"></i>
+                    <span data-i18n="nav_logout">Logout / Profile</span>
+                </div>
+            </div>
+            <div class="drawer-footer">
+                <span id="drawer-sync-status" class="status-indicator online">
+                    <i data-lucide="wifi"></i>
+                    <span style="font-size: 0.8rem; margin-top: 4px;">Online</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="app-container">
+
+            <!-- View: Authentication (NGO & Volunteer) -->
+            <section id="view-auth" class="view-section hidden mode-login">
+                <!-- Navigation Element outside the card -->
+                <button id="btn-auth-back" class="auth-back-btn" title="Back to roles">
+                    <i data-lucide="arrow-left"></i>
+                </button>
+
+                <!-- LOGIN LAYOUT: Centered Card -->
+                <div id="auth-login-layout" class="auth-container">
+                    <div class="auth-logo">
+                        <i data-lucide="activity"></i>
+                        <span>ImpactFlow</span>
+                    </div>
+
+                    <div class="auth-card">
+                        <h2 id="login-title">NGO Login</h2>
+                        <p class="subtitle">Access your organization dashboard</p>
+
+                        <form id="login-form">
+                            <div class="auth-input-group">
+                                <label>Email Address</label>
+                                <input type="email" id="login-email" class="auth-input" placeholder="Email-id" required>
+                            </div>
+                            <div class="auth-input-group">
+                                <label>Password</label>
+                                <input type="password" id="login-password" class="auth-input" placeholder="••••••••"
+                                    required>
+                            </div>
+                            <button type="submit" class="btn btn-primary full-width mb-1">Login</button>
+                        </form>
+
+                        <div class="auth-footer">
+                            <span>Don't have an account?</span>
+                            <button class="link-btn btn-go-signup">Sign Up</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIGNUP LAYOUT: Split Screen -->
+                <div id="auth-signup-layout" class="auth-split-layout hidden">
+                    <div class="auth-sidebar">
+                        <div class="sidebar-content">
+                            <div class="sidebar-logo">
+                                <i data-lucide="activity"></i>
+                                <span>ImpactFlow</span>
+                            </div>
+                            <h1 id="signup-sidebar-title">Join our Relief Network</h1>
+                            <p id="signup-sidebar-desc">Empowering NGOs and volunteers to coordinate disaster relief in
+                                real-time.</p>
+                        </div>
+                    </div>
+                    <div class="auth-form-side">
+                        <div class="signup-form-container">
+                            <h2 id="signup-form-title">Create your Account</h2>
+                            <p class="subtitle">It only takes a minute to get started.</p>
+
+                            <form id="signup-form">
+                                <div id="signup-fields-container">
+                                    <!-- Dynamic Fields Injected Here -->
+                                </div>
+                                <button type="submit" class="btn btn-primary full-width mt-1">Create Account</button>
+                            </form>
+
+                            <div class="auth-footer mt-2">
+                                <span>Already have an account?</span>
+                                <button class="link-btn btn-go-login">Back to Login</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Person in Need / Need Help Form -->
+            <section id="view-need-help" class="view-section active">
+                <div class="content-wrapper">
+                    <h2><i data-lucide="life-buoy"></i> <span data-i18n="need_help_title">Request Assistance</span></h2>
+                    <p class="subtitle" data-i18n="need_help_subtitle">Broadcast your needs to nearby NGOs and
+                        volunteers.</p>
+
+                    <div class="glass form-card">
+                        <form id="need-help-form">
+                            <div class="form-group">
+                                <label data-i18n="label_your_name">Your Name (Optional)</label>
+                                <input type="text" name="name" class="glass-input full-width"
+                                    data-i18n-placeholder="placeholder_name" placeholder="Enter name">
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="label_contact">Contact Number</label>
+                                <input type="tel" id="vic-contact" class="glass-input full-width"
+                                    data-i18n-placeholder="placeholder_contact" placeholder="+1 555-0100" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-i18n="label_emergency_cat">Emergency Category</label>
+                                <select name="category" class="glass-input full-width" required>
+                                    <option value="Medical" data-i18n="opt_medical">Medical Assistance</option>
+                                    <option value="Food" data-i18n="opt_food">Food &amp; Water</option>
+                                    <option value="Shelter" data-i18n="opt_shelter">Temporary Shelter</option>
+                                    <option value="Rescue" data-i18n="opt_rescue">Immediate Rescue</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-i18n="label_urgency">Urgency Level</label>
+                                <div class="urgency-radios">
+                                    <label class="urg-radio"><input type="radio" name="urgency" value="Yellow" required>
+                                        <span data-i18n="urg_moderate">Moderate</span></label>
+                                    <label class="urg-radio"><input type="radio" name="urgency" value="Orange">
+                                        <span data-i18n="urg_high">High</span></label>
+                                    <label class="urg-radio"><input type="radio" name="urgency" value="Red">
+                                        <span data-i18n="urg_critical">Critical</span></label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-i18n="label_address">Address</label>
+                                <input type="text" name="address" class="glass-input full-width"
+                                    data-i18n-placeholder="placeholder_address" placeholder="Address">
+                            </div>
+
+                            <div class="toggle-row">
+                                <div style="font-weight: 500;">
+                                    <span data-i18n="toggle_live_location">Share Live Location</span>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;"
+                                        data-i18n="toggle_live_location_sub">Required for NGOs to find you.</div>
+                                </div>
+                                <div><input type="checkbox" id="live-location-toggle" checked
+                                        style="transform: scale(1.5);"></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-gradient-blue full-width mb-2">
+                                <i data-lucide="send"></i>
+                                <span data-i18n="btn_submit_request">Submit Request</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Volunteer Registration Onboarding -->
+            <section id="view-volunteer-reg" class="view-section hidden role-view">
+                <div class="content-wrapper">
+                    <h2><i data-lucide="user-plus"></i> <span data-i18n="vol_reg_title">Volunteer Registration</span>
+                    </h2>
+                    <p class="subtitle" data-i18n="vol_reg_subtitle">Join the local response network and receive tasks.
+                    </p>
+
+                    <div class="glass form-card">
+                        <form id="volunteer-reg-form">
+                            <div class="form-group">
+                                <label data-i18n="label_full_name">Full Name</label>
+                                <input type="text" id="vol-name" class="glass-input full-width"
+                                    data-i18n-placeholder="placeholder_full_name" placeholder="John Doe" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-i18n="label_contact">Contact Number</label>
+                                <input type="tel" id="vol-contact" class="glass-input full-width"
+                                    data-i18n-placeholder="placeholder_contact" placeholder="+1 555-0100" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-i18n="label_help_with">I want to help with</label>9
+                                <select id="vol-help-type" class="glass-input full-width" required>
+                                    <option value="Food Distribution" data-i18n="opt_food_dist">Food Distribution
+                                    </option>
+                                    <option value="Medical Aid" data-i18n="opt_medical_aid">Medical Aid</option>
+                                    <option value="Transport" data-i18n="opt_transport">Transport / Delivery</option>
+                                    <option value="Rescuing" data-i18n="opt_rescuing">Physical Rescuing</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-i18n="label_connect_ngo">Connect with NGO</label>
+                                <select id="vol-ngo-select" class="glass-input full-width" required>
+                                    <option value="RedCross Local">RedCross Local</option>
+                                    <option value="Global Relief Partners">Global Relief Partners</option>
+                                    <option value="City Rescue Mission">City Rescue Mission</option>
+                                    <option value="Independent (No NGO)" data-i18n="opt_independent">Independent
+                                        Responder</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-i18n="label_my_location">My Current Location</label>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <input type="text" id="vol-location" class="glass-input" style="flex:1;"
+                                        data-i18n-placeholder="placeholder_latlng" placeholder="Lat, Lng" required>
+                                    <button type="button" class="btn btn-outline"
+                                        onclick="document.getElementById('vol-location').value = '40.7128, -74.0060'; alert('Simulated GPS Fetch!');">
+                                        <i data-lucide="map-pin"></i>
+                                        <span data-i18n="btn_fetch">Fetch</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary full-width mb-2">
+                                <i data-lucide="check-circle"></i>
+                                <span data-i18n="btn_register">Register &amp; Enter Feed</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: NGO Dashboard & Analytics -->
+            <section id="view-ngo" class="view-section hidden role-view">
+                <div class="content-wrapper">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <h2><i data-lucide="layout-dashboard"></i> <span data-i18n="ngo_dash_title">Organization
+                                    Dashboard</span></h2>
+                            <p class="subtitle" data-i18n="ngo_dash_subtitle">Manage resources and track demand.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline" id="simulate-12h">
+                            <i data-lucide="clock"></i>
+                            <span data-i18n="btn_simulate">Simulate 12h</span>
+                        </button>
+                    </div>
+
+                    <!-- NGO Progress Bar -->
+                    <div class="glass form-card mb-2" style="padding: 1.5rem; margin-top: 1.5rem;">
+                        <h3
+                            style="margin-bottom: 0.5rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="activity"></i> <span data-i18n="ngo_response_progress">Response
+                                Progress</span>
+                        </h3>
+                        <div class="progress-bar-bg" style="height: 12px;">
+                            <div id="ngo-progress-fill" class="progress-bar-fill"
+                                style="width: 0%; background: var(--color-accent-green);"></div>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 0.5rem; color: var(--text-muted);">
+                            <span id="ngo-progress-text">0 Responded / 0 Total</span>
+                        </div>
+                    </div>
+
+                    <!-- Live Interactive Map -->
+                    <div id="live-map"
+                        style="height:300px; border-radius:16px; margin-bottom:20px; box-shadow: var(--shadow-soft); border: 1px solid rgba(0,0,0,0.05); background: #eee;">
+                    </div>
+
+                    <!-- Detailed Requests List Controls -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="list"></i> <span data-i18n="ngo_detailed_requests">Detailed Requests</span>
+                        </h3>
+                        <select id="ngo-sort-select" class="glass-input" style="padding: 0.4rem; font-size: 0.85rem;">
+                            <option value="urgency" data-i18n="sort_urgency">Sort by Urgency</option>
+                            <option value="location" data-i18n="sort_location">Sort by Location</option>
+                        </select>
+                    </div>
+                    <div id="ngo-detailed-list" class="dashboard-grid mb-2"></div>
+
+                    <!-- Demand Analytics -->
+                    <div class="glass analytics-panel mb-1">
+                        <h3><i data-lucide="bar-chart-2"></i> <span data-i18n="ngo_demand_analytics">Demand
+                                Analytics</span></h3>
+                        <div class="analytics-grid">
+                            <div class="stat-box">
+                                <div class="stat-value" id="stat-req-food">0</div>
+                                <div class="stat-label" data-i18n="stat_food_requests">Food/Water Requests</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="stat-req-med">0</div>
+                                <div class="stat-label" data-i18n="stat_med_requests">Medical Requests</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="mt-2 mb-1"><i data-lucide="package"></i> <span data-i18n="ngo_active_resources">Active
+                            Resources</span></h3>
+                    <div class="dashboard-grid" id="resource-container"></div>
+                </div>
+            </section>
+
+            <!-- View: Interactive Map -->
+            <section id="view-map" class="view-section hidden role-view">
+                <div class="content-wrapper">
+                    <h2><i data-lucide="map"></i> <span data-i18n="map_title">Interactive Dispatch Map</span></h2>
+                    <p class="subtitle" data-i18n="map_subtitle">Aggregated hotspots highlighting clustered requests
+                        (&lt; 500m).</p>
+                    <div class="map-view-wrapper">
+                        <div id="impact-map"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Volunteer Action / Verification -->
+            <section id="view-volunteer" class="view-section hidden role-view">
+                <div class="content-wrapper">
+                    <h2><i data-lucide="clipboard-check"></i> <span data-i18n="vol_feed_title">Local Task Feed</span>
+                    </h2>
+                    <p class="subtitle" data-i18n="vol_feed_subtitle">Verified Needs nearby. Accept unverified tasks to
+                        confirm their status.</p>
+
+                    <button id="btn-view-identity" class="btn btn-outline full-width mb-2"
+                        style="background: rgba(255,255,255,0.8); backdrop-filter: blur(5px); border-radius: 12px; font-size: 1rem; color: var(--color-electric-blue); font-weight: 600;">
+                        🪪 <span data-i18n="btn_view_identity">View My Identity</span>
+                    </button>
+
+                    <div id="verification-list" class="feed-grid mb-2"></div>
+                </div>
+            </section>
+
+            <!-- VOLUNTEER IDENTITY MODAL -->
+            <div id="volunteer-id-modal" class="modal hidden">
+                <div class="modal-content slide-up"
+                    style="background: #F0F4F8; border-radius: 24px; padding: 1.5rem; max-width: 400px; position: relative; overflow: hidden;">
+
+                    <!-- SUCCESS OVERLAY -->
+                    <div id="modal-success-overlay" class="hidden"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 244, 248, 0.95); backdrop-filter: blur(8px); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem;">
+                        <i data-lucide="check-circle"
+                            style="color: var(--color-accent-green); width: 80px; height: 80px; margin-bottom: 1.5rem;"></i>
+                        <h2 style="color: var(--text-main); font-size: 1.5rem; margin-bottom: 0.5rem;"
+                            data-i18n="modal_identity_verified">Identity Verified</h2>
+                        <p style="color: var(--text-muted); font-size: 1rem;" data-i18n="modal_ready_to_assist">You are
+                            now ready to assist!</p>
+                    </div>
+
+                    <button id="btn-close-id-modal" class="icon-button"
+                        style="position: absolute; top: 1rem; right: 1rem; z-index: 5;"><i data-lucide="x"></i></button>
+
+                    <h3 style="text-align: center; margin-bottom: 1.5rem; color: var(--text-main);"
+                        data-i18n="modal_vol_identity_title">Volunteer Identity</h3>
+
+                    <div class="volunteer-id-card-styled">
+                        <div class="profile-photo">
+                            <i data-lucide="user-circle"
+                                style="width: 48px; height: 48px; color: var(--color-electric-blue);"></i>
+                        </div>
+                        <h2 id="modal-vol-name" style="margin-bottom: 0.25rem; font-size: 1.5rem;">Name</h2>
+                        <p style="color: var(--color-electric-blue); font-weight: 600; font-size: 0.9rem; margin-bottom: 0.15rem;"
+                            id="modal-vol-skill">Primary Skill</p>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                            <span data-i18n="modal_connection_label">Connection:</span>
+                            <strong id="modal-vol-ngo">NGO</strong>
+                        </p>
+
+                        <div class="id-qr-box">
+                            <i data-lucide="qr-code" style="width: 120px; height: 120px; color: var(--text-main);"></i>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 auto 1rem auto; line-height: 1.4; max-width: 85%;"
+                            data-i18n="modal_qr_hint">Show this QR to NGO at the relief site for instant check-in.</p>
+                    </div>
+
+                    <button id="btn-scan-ngo-qr" class="btn btn-primary full-width mt-2"
+                        style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 1rem; font-size: 1rem;">
+                        📷 <span data-i18n="btn_connect_ngo">Connect with NGO</span>
+                    </button>
+
+                    <button id="btn-close-id-modal-bottom" class="btn btn-outline full-width mt-1"
+                        style="font-weight: 600;">
+                        🏁 <span data-i18n="btn_go_task_feed">Go to Task Feed</span>
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Floating SOS Button -->
+        <button id="sos-btn-universal" class="sos-button-universal" data-i18n-title="sos_title"
+            title="Quick SOS Broadcast">
+            <span class="pulse-ring"></span>
+            <i data-lucide="alert-triangle"></i>
+        </button>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-target="view-need-help" id="nav-btn-victim">
+                <i data-lucide="heart-handshake"></i>
+                <span data-i18n="nav_get_help">Get Help</span>
+            </button>
+            <button class="nav-item role-nav hidden" data-target="view-ngo" id="nav-btn-ngo">
+                <i data-lucide="database"></i>
+                <span data-i18n="nav_dashboard">Dashboard</span>
+            </button>
+            <button class="nav-item role-nav hidden" data-target="view-volunteer" id="nav-btn-vol">
+                <i data-lucide="check-square"></i>
+                <span data-i18n="nav_verify_tasks">Verify Tasks</span>
+            </button>
+            <button class="nav-item role-nav hidden hidden-victim" data-target="view-map" id="nav-btn-map">
+                <i data-lucide="map"></i>
+                <span data-i18n="nav_dispatch_map">Dispatch Map</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"
+        style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;">
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initGoogleMap" async defer></script>
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
